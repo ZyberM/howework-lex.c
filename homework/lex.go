@@ -135,7 +135,8 @@ func fault(s int) {
         goarch = thestring
 
         outfile = nil
-        ARGBEGIN {
+
+/*        ARGBEGIN {
 
         default:
                 c = ARGC();
@@ -158,83 +159,85 @@ func fault(s int) {
         case 'V':
                 fmt.Sprint("%cg version %s\n", thechar, getgoversion());
                 exit(0)
-        } ARGEND
+        } ARGEND   */
 
-        if(argc < 1)
-                usage();
+        if argc < 1 {
+                usage()
 
         // special flag to detect compilation of package runtime
-        compiling_runtime = debug['+'];
+        compiling_runtime = debug['+']
 
-        pathname = mal(1000);
-        if(getwd(pathname, 999) == 0)
-                strcpy(pathname, "/???");
+        pathname = mal(1000) }
+        if getwd(pathname, 999) == 0 {
+                strcpy(pathname, "/???") }
 
-        if(yy_isalpha(pathname[0]) && pathname[1] == ':') {
+        if yy_isalpha(pathname[0]) && pathname[1] == ':' {
                 // On Windows.
-                windows = 1;
+                windows = 1
 
                 // Canonicalize path by converting \ to / (Windows accepts both).
-                for(p=pathname; *p; p++)
-                        if(*p == '\\')
-                                *p = '/';
+                /* for p=pathname; *p; p++
+                        if *p == '\\'
+                                *p = '/'   */
         }
 
-        fmtinstall('O', Oconv);         // node opcodes
-        fmtinstall('E', Econv);         // etype opcodes
-        fmtinstall('J', Jconv);         // all the node flags
-        fmtinstall('S', Sconv);         // sym pointer
-        fmtinstall('T', Tconv);         // type pointer
-        fmtinstall('N', Nconv);         // node pointer
-        fmtinstall('Z', Zconv);         // escaped string
-        fmtinstall('L', Lconv);         // line number
-        fmtinstall('B', Bconv);         // big numbers
-        fmtinstall('F', Fconv);         // big float numbers
+        fmtinstall('O', Oconv)         // node opcodes
+        fmtinstall('E', Econv)         // etype opcodes
+        fmtinstall('J', Jconv)         // all the node flags
+        fmtinstall('S', Sconv)         // sym pointer
+        fmtinstall('T', Tconv)         // type pointer
+        fmtinstall('N', Nconv)         // node pointer
+        fmtinstall('Z', Zconv)         // escaped string
+        fmtinstall('L', Lconv)         // line number
+        fmtinstall('B', Bconv)         // big numbers
+        fmtinstall('F', Fconv)         // big float numbers
 
-        betypeinit();
-        if(widthptr == 0)
-                fatal("betypeinit failed");
+        betypeinit()
+       
+       if widthptr == 0 {
+                fatal("betypeinit failed")
 
-        lexinit();
-        typeinit();
-        yytinit();
+        Lexinit()
+        typeinit()
+        yytinit()
 
-        blockgen = 1;
-        dclcontext = PEXTERN;
-        nerrors = 0;
-        lexlineno = 1;
+        blockgen = 1
+        dclcontext = PEXTERN
+        nerrors = 0
+        lexlineno = 1
+	for i := 0; i < argc; i++ {
+                infile = argv[i]
+                linehist(infile, 0, 0)
 
-        for(i=0; i<argc; i++) {
-                infile = argv[i];
-                linehist(infile, 0, 0);
+                curio.infile = infile
+                curio.bin = Bopen(infile, OREAD)
+                ifcurio.bin == nil {
+                     // fmt.Sprintf("open %s: %r\n", infile)
+                        errorexit(0) }
+                curio.peekc = 0
+                curio.peekc1 = 0
+                curio.nlsemi = 0
 
-                curio.infile = infile;
-                curio.bin = Bopen(infile, OREAD);
-                if(curio.bin == nil) {
-                        print("open %s: %r\n", infile);
-                        errorexit();
-                }
-                curio.peekc = 0;
-                curio.peekc1 = 0;
-                curio.nlsemi = 0;
+                block = 1
 
-                block = 1;
+                yyparse()
 
-                yyparse();
-                if(nsyntaxerrors != 0)
-                        errorexit();
+                if nsyntaxerrors != 0 {
+                        errorexit(0)
 
-                linehist(nil, 0, 0);
-                if(curio.bin != nil)
-                        Bterm(curio.bin);
-        }
-        testdclstack();
-        mkpackage(localpkg->name);      // final import not used checks
-        lexfini();
+                linehist(nil, 0, 0) }
 
-        typecheckok = 1;
-        if(debug['f'])
-                frame(1);
+                if curio.bin != nil {
+                        Bterm(curio.bin)} 
+	}
+        testdclstack()
+        mkpackage(loclpkg<-name)      // final import not used checks
+        lexfini()
+
+        typecheckok = 1
+
+        if debug['f'] {
+                frame(1) }
 
         // Process top-level declarations in four phases.
         // Phase 1: const, type, and names and types of funcs.
@@ -244,7 +247,11 @@ func fault(s int) {
         //   To check interface assignments, depends on phase 1.
         // Phase 3: Type check function bodies.
         // Phase 4: Compile function bodies.
-        defercheckwidth();
+
+
+
+        defercheckwidth()
+
         for(l=xtop; l; l=l->next)
                 if(l->n->op != ODCL && l->n->op != OAS)
                         typecheck(&l->n, Etop);
