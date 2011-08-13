@@ -1,162 +1,163 @@
-// Copyright 2009 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+package template
 
-#define         EXTERN
-#include        "go.h"
-#include        "y.tab.h"
-#include        <ar.h>
+import (
+        "fmt"
+        "strings"
+        "unicode"
+        "utf8"
+)
 
-#undef  getc
-#undef  ungetc
-#define getc    ccgetc
-#define ungetc  ccungetc
+//#define         EXTERN
+//#include        "go.h"
+//#include        "y.tab.h"
+//#include        <ar.h>
 
-extern int yychar;
-int windows;
-int yyprev;
-int yylast;
+//#undef  getc
+//#undef  ungetc
+//#define getc    ccgetc
+//#define ungetc  ccungetc
+//
 
-static void     lexinit(void);
-static void     lexfini(void);
-static void     yytinit(void);
-static int      getc(void);
-static void     ungetc(int);
-static int32    getr(void);
-static int      escchar(int, int*, vlong*);
-static void     addidir(char*);
-static int      getlinepragma(void);
-static char *goos, *goarch, *goroot;
+//extern int yychar;
+//int windows;
+//int yyprev;
+//int yylast;
+
+func Lexinit(void)
+func lexfini(void)
+func yytinit(void)
+func getc(void)int
+func ungetc(int)
+func getr(void)int32
+//func escchar(int, int*, vlong*)int
+//func addidir(char*)
+func getlinepragma(void)int
+//char *goos, *goarch, *goroot;
 
 // Our own isdigit, isspace, isalpha, isalnum that take care 
 // of EOF and other out of range arguments.
-static int
-yy_isdigit(int c)
-{
-        return c >= 0 && c <= 0xFF && isdigit(c);
+
+func yy_isdigit(c int)int {
+        return c >= 0 && c <= 0xFF && isdigit(c)
 }
 
-static int
-yy_isspace(int c)
-{
-        return c >= 0 && c <= 0xFF && isspace(c);
+
+func yy_isspace(c int)int {
+        return c >= 0 && c <= 0xFF && isspace(c)
 }
 
-static int
-yy_isalpha(int c)
-{
-        return c >= 0 && c <= 0xFF && isalpha(c);
+
+func yy_isalpha(c int)int {
+        return c >= 0 && c <= 0xFF && isalpha(c)
 }
 
-static int
-yy_isalnum(int c)
-{
+
+func yy_isalnum(c int )int {
         return c >= 0 && c <= 0xFF && isalnum(c);
 }
 
 // Disallow use of isdigit etc.
-#undef isdigit
-#undef isspace
-#undef isalpha
-#undef isalnum
-#define isdigit use_yy_isdigit_instead_of_isdigit
-#define isspace use_yy_isspace_instead_of_isspace
-#define isalpha use_yy_isalpha_instead_of_isalpha
-#define isalnum use_yy_isalnum_instead_of_isalnum
+//#undef isdigit
+//#undef isspace
+//#undef isalpha
+//#undef isalnum
+//#define isdigit use_yy_isdigit_instead_of_isdigit
+//#define isspace use_yy_isspace_instead_of_isspace
+//#define isalpha use_yy_isalpha_instead_of_isalpha
+//#define isalnum use_yy_isalnum_instead_of_isalnum
 
-#define DBG     if(!debug['x']);else print
-enum
-{
-        EOF             = -1,
-};
+//#define DBG  
 
-void
-usage(void)
-{
-        print("gc: usage: %cg [flags] file.go...\n", thechar);
-        print("flags:\n");
-        // -A is allow use of "any" type, for bootstrapping
-        print("  -I DIR search for packages in DIR\n");
-        print("  -d print declarations\n");
-        print("  -e no limit on number of errors printed\n");
-        print("  -f print stack frame structure\n");
-        print("  -h panic on an error\n");
-        print("  -o file specify output file\n");
-        print("  -S print the assembly language\n");
-        print("  -V print the compiler version\n");
-        print("  -u disable package unsafe\n");
-        print("  -w print the parse tree after typing\n");
-        print("  -x print lex tokens\n");
+const eof = -1
+
+//if(!debug['x']);else print enum
+//{
+//      EOF             = -1,
+//};
+
+func usage(void) {
+        
+	fmt.Sprintf("gc: usage: %cg [flags] file.go...\n", thechar)
+        fmt.Sprintf("flags:\n")
+        fmt.Sprintf("  -I DIR search for packages in DIR\n")
+        fmt.Sprintf("  -d print declarations\n")
+        fmt.Sprintf("  -e no limit on number of errors printed\n")
+        fmt.Sprintf("  -f print stack frame structure\n")
+        fmt.Sprintf("  -h panic on an error\n")
+        fmt.Sprintf("  -o file specify output file\n")
+        fmt.Sprintf("  -S print the assembly language\n")
+        fmt.Sprintf("  -V print the compiler version\n")
+        fmt.Sprintf("  -u disable package unsafe\n");
+        fmt.Sprintf("  -w print the parse tree after typing\n")
+        fmt.Sprintf("  -x print lex tokens\n")
         exit(0);
 }
 
-void
-fault(int s)
-{
+func fault(s int) {
         // If we've already complained about things
         // in the program, don't bother complaining
         // about the seg fault too; let the user clean up
         // the code and try again.
-        if(nsavederrors + nerrors > 0)
-                errorexit();
-        fatal("fault");
+        if nsavederrors + nerrors > 0 {
+                errorexit()
+        	fatal("fault") }
 }
 
-int
-main(int argc, char *argv[])
-{
-        int i, c;
-        NodeList *l;
-        char *p;
+
+
+   func main(int, *[]argv) int {
+        var i,c  int
+	var l *NodeList
+	var p *char
         
-        signal(SIGBUS, fault);
-        signal(SIGSEGV, fault);
+        signal(SIGBUS, fault)
+        signal(SIGSEGV, fault)
 
-        localpkg = mkpkg(strlit(""));
-        localpkg->prefix = "\"\"";
+        localpkg = mkpkg(strlit(""))
+        localpkg<-prefix = "\"\""
 
-        builtinpkg = mkpkg(strlit("go.builtin"));
+        builtinpkg = mkpkg(strlit("go.builtin"))
 
-        gostringpkg = mkpkg(strlit("go.string"));
-        gostringpkg->name = "go.string";
-        gostringpkg->prefix = "go.string";      // not go%2estring
+        gostringpkg = mkpkg(strlit("go.string"))
+        gostringpkg<-name = "go.string"
+        gostringpkg<-prefix = "go.string"     // not go%2estring
 
-        runtimepkg = mkpkg(strlit("runtime"));
-        runtimepkg->name = "runtime";
+        runtimepkg = mkpkg(strlit("runtime"))
+        runtimepkg<-name = "runtime"
 
-        typepkg = mkpkg(strlit("type"));
-        typepkg->name = "type";
+        typepkg = mkpkg(strlit("type"))
+        typepkg<-name = "type"
 
-        unsafepkg = mkpkg(strlit("unsafe"));
-        unsafepkg->name = "unsafe";
+        unsafepkg = mkpkg(strlit("unsafe"))
+        unsafepkg<-name = "unsafe"
+        goroot = getgoroot()
+        goos = getgoos()
+        goarch = thestring
 
-        goroot = getgoroot();
-        goos = getgoos();
-        goarch = thestring;
-
-        outfile = nil;
+        outfile = nil
         ARGBEGIN {
+
         default:
                 c = ARGC();
                 if(c >= 0 && c < sizeof(debug))
-                        debug[c]++;
-                break;
+                        debug[c]++
+                break
 
         case 'o':
-                outfile = EARGF(usage());
-                break;
+                outfile = EARGF(usage())
+                break
 
         case 'I':
-                addidir(EARGF(usage()));
-                break;
+                addidir(EARGF(usage()))
+                break
         
         case 'u':
                 safemode = 1;
-                break;
+                break
 
         case 'V':
-                print("%cg version %s\n", thechar, getgoversion());
-                exit(0);
+                fmt.Sprint("%cg version %s\n", thechar, getgoversion());
+                exit(0)
         } ARGEND
 
         if(argc < 1)
