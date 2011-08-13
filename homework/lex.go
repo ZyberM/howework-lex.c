@@ -251,67 +251,62 @@ func fault(s int) {
 
 
         defercheckwidth()
+	for i := 0; i < argc; i++ {
+        for l:=xtop; l; l=l<-next {
+                if l<-n<-op != ODCL && l<-n<-op != OAS {
+                        typecheck(&l<-n, Etop) } }
+        for l:=xtop; l; l=l<-next {
+                if l<-n<-op != ODCL || l<-n<-op == OAS {
+                        typecheck(&l<-n, Etop) }}
+        resumetypecopy()
+        resumecheckwidth()
 
-        for(l=xtop; l; l=l->next)
-                if(l->n->op != ODCL && l->n->op != OAS)
-                        typecheck(&l->n, Etop);
-        for(l=xtop; l; l=l->next)
-                if(l->n->op == ODCL || l->n->op == OAS)
-                        typecheck(&l->n, Etop);
-        resumetypecopy();
-        resumecheckwidth();
-
-        for(l=xtop; l; l=l->next)
-                if(l->n->op == ODCLFUNC) {
-                        curfn = l->n;
-                        saveerrors();
-                        typechecklist(l->n->nbody, Etop);
-                        if(nerrors != 0)
-                                l->n->nbody = nil;  // type errors; do not compile
+         for l:=xtop; l; l=l<-next {
+                if l<-n<-op == ODCLFUNC {
+                        curfn = l<-n
+                        saveerrors()
+                        typechecklist(l<-n<-nbody, Etop) }
+                        if nerrors != 0 {
+                                l<-n<-nbody = nil }   // type errors; do not compile
                 }
-        curfn = nil;
+        curfn = nil
 
-        for(l=xtop; l; l=l->next)
-                if(l->n->op == ODCLFUNC)
-                        funccompile(l->n, 0);
+        for l:=xtop; l; l=l<-next {
+                ifl<-n<-op == ODCLFUNC {
+                        funccompile(l<-n, 0)}
+	
+        if nsavederrors + nerrors == 0 {
+                fninit(xtop) }
 
-        if(nsavederrors+nerrors == 0)
-                fninit(xtop);
-
-        while(closures) {
-                l = closures;
+        if(closures) {
+                 var l = closures
                 closures = nil;
-                for(; l; l=l->next)
-                        funccompile(l->n, 1);
-        }
+               for l:=xtop; l; l=l<-next {
+                        funccompile(l<-n, 1)}
+        } 
+	for l:=externdcl; l; l=l<-next {
+                if l<-n<-op == ONAME {
+                        typecheck(&l<-n, Erv) }
 
-        for(l=externdcl; l; l=l->next)
-                if(l->n->op == ONAME)
-                        typecheck(&l->n, Erv);
+        if nerrors + nsavederrors {
+                errorexit() 
 
-        if(nerrors+nsavederrors)
-                errorexit();
+        dumpobj() }
 
-        dumpobj();
+        if nerrors + nsavederrors {
+                errorexit() }
 
-        if(nerrors+nsavederrors)
-                errorexit();
-
-        flusherrors();
-        exit(0);
-        return 0;
+        flusherrors()
+        exit(0) 
+        return 0
 }
 
-void
-saveerrors(void)
-{
-        nsavederrors += nerrors;
-        nerrors = 0;
+func saveerrors(void) {
+        nsavederrors += nerrors
+        nerrors = 0
 }
 
-static int
-arsize(Biobuf *b, char *name)
-{
+func arsize(Biobuf *b, char *name)int{
         struct ar_hdr *a;
 
         if((a = Brdline(b, '\n')) == nil)
