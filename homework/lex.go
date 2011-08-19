@@ -306,436 +306,416 @@ func saveerrors(void) {
         nerrors = 0
 }
 
-func arsize(Biobuf *b, char *name)int{
-        struct ar_hdr *a;
+func arsize(Biobuf *b, char *name)int {
+        struct ar_hdr *a
 
-        if((a = Brdline(b, '\n')) == nil)
-                return -1;
-        if(Blinelen(b) != sizeof(struct ar_hdr))
-                return -1;
-        if(strncmp(a->name, name, strlen(name)) != 0)
-                return -1;
-        return atoi(a->size);
+        if a = Brdline(b, '\n') == nil
+                return -1
+        if Blinelen(b) != sizeof(struct ar_hdr)
+                return -1
+        if strncmp(a<-name, name, strlen(name)) != 0
+                return -1
+        return atoi(a->size)
 }
 
-static int
-skiptopkgdef(Biobuf *b)
-{
+func skiptopkgdef(Biobuf *b) int {
         char *p;
         int sz;
 
         /* archive header */
-        if((p = Brdline(b, '\n')) == nil)
-                return 0;
-        if(Blinelen(b) != 8)
-                return 0;
-        if(memcmp(p, "!<arch>\n", 8) != 0)
-                return 0;
+        if p = Brdline(b, '\n') == nil
+                return 0
+        if Blinelen(b) != 8
+                return 0
+        if memcmp(p, "!<arch>\n", 8) != 0
+                return 0
         /* symbol table is first; skip it */
         sz = arsize(b, "__.SYMDEF");
-        if(sz < 0)
-                return 0;
-        Bseek(b, sz, 1);
+        if sz < 0
+                return 0
+        Bseek(b, sz, 1)
         /* package export block is second */
-        sz = arsize(b, "__.PKGDEF");
-        if(sz <= 0)
-                return 0;
-        return 1;
+        sz = arsize(b, "__.PKGDEF")
+        if sz <= 0
+                return 0
+        return 1
 }
 
-static void
-addidir(char* dir)
-{
+func addidir(char* dir){
         Idir** pp;
 
-        if(dir == nil)
+        if dir == nil
                 return;
 
-        for(pp = &idirs; *pp != nil; pp = &(*pp)->link)
+        for pp = &idirs; *pp != nil; pp = &(*pp)->link
                 ;
-        *pp = mal(sizeof(Idir));
-        (*pp)->link = nil;
-        (*pp)->dir = dir;
+        *pp = mal(sizeof(Idir))
+        (*pp)->link = nil
+        (*pp)->dir = dir
 }
 
 // is this path a local name?  begins with ./ or ../ or /
-static int
-islocalname(Strlit *name)
-{
-        if(!windows && name->len >= 1 && name->s[0] == '/')
-                return 1;
-        if(windows && name->len >= 3 &&
-           yy_isalpha(name->s[0]) && name->s[1] == ':' && name->s[2] == '/')
-                return 1;
-        if(name->len >= 2 && strncmp(name->s, "./", 2) == 0)
-                return 1;
-        if(name->len >= 3 && strncmp(name->s, "../", 3) == 0)
-                return 1;
-        return 0;
+func islocalname(Strlit *name)int {
+        if !windows && name->len >= 1 && name->s[0] == '/'
+                return 1
+        if windows && name->len >= 3 &&
+           yy_isalpha(name->s[0]) && name->s[1] == ':' && name->s[2] == '/'
+                return 1
+        if name->len >= 2 && strncmp(name->s, "./", 2) == 0
+                return 1
+        if name->len >= 3 && strncmp(name->s, "../", 3) == 0
+                return 1
+        return 0
 }
 
-static int
-findpkg(Strlit *name)
-{
+func findpkg(Strlit *name) int {
         Idir *p;
         char *q;
 
-        if(islocalname(name)) {
-                if(safemode)
-                        return 0;
+        if islocalname(name) {
+                if safemode
+                        return 0
                 // try .a before .6.  important for building libraries:
                 // if there is an array.6 in the array.a library,
                 // want to find all of array.a, not just array.6.
-                snprint(namebuf, sizeof(namebuf), "%Z.a", name);
-                if(access(namebuf, 0) >= 0)
-                        return 1;
-                snprint(namebuf, sizeof(namebuf), "%Z.%c", name, thechar);
-                if(access(namebuf, 0) >= 0)
-                        return 1;
-                return 0;
+                snprint(namebuf, sizeof(namebuf), "%Z.a", name)
+                if access(namebuf, 0) >= 0
+                        return 1
+                snprint(namebuf, sizeof(namebuf), "%Z.%c", name, thechar)
+                if access(namebuf, 0) >= 0
+                        return 1
+                return 0
         }
 
         // local imports should be canonicalized already.
         // don't want to see "container/../container/vector"
         // as different from "container/vector".
-        q = mal(name->len+1);
-        memmove(q, name->s, name->len);
-        q[name->len] = '\0';
-        cleanname(q);
-        if(strlen(q) != name->len || memcmp(q, name->s, name->len) != 0) {
-                yyerror("non-canonical import path %Z (should be %s)", name, q);
-                return 0;
+        q = mal(name->len+1)
+        memmove(q, name->s, name->len)
+        q[name->len] = '\0'
+        cleanname(q)
+        if strlen(q) != name->len || memcmp(q, name->s, name->len) != 0 {
+                yyerror("non-canonical import path %Z (should be %s)", name, q)
+                return 0
         }
 
-        for(p = idirs; p != nil; p = p->link) {
+        for p = idirs; p != nil; p = p<-link {
                 snprint(namebuf, sizeof(namebuf), "%s/%Z.a", p->dir, name);
-                if(access(namebuf, 0) >= 0)
-                        return 1;
+                if access(namebuf, 0) >= 0
+                        return 1
                 snprint(namebuf, sizeof(namebuf), "%s/%Z.%c", p->dir, name, thechar);
-                if(access(namebuf, 0) >= 0)
+                if access(namebuf, 0) >= 0
+                        return 1
+        }
+        if goroot != nil {
+                snprint(namebuf, sizeof(namebuf), "%s/pkg/%s_%s/%Z.a", goroot, goos, goarch, name)
+                if access(namebuf, 0) >= 0
+                        return 1
+                snprint(namebuf, sizeof(namebuf), "%s/pkg/%s_%s/%Z.%c", goroot, goos, goarch, name, thechar)
+                if access(namebuf, 0) >= 0
                         return 1;
         }
-        if(goroot != nil) {
-                snprint(namebuf, sizeof(namebuf), "%s/pkg/%s_%s/%Z.a", goroot, goos, goarch, name);
-                if(access(namebuf, 0) >= 0)
-                        return 1;
-                snprint(namebuf, sizeof(namebuf), "%s/pkg/%s_%s/%Z.%c", goroot, goos, goarch, name, thechar);
-                if(access(namebuf, 0) >= 0)
-                        return 1;
-        }
-        return 0;
+        return 0
 }
-
-void
-importfile(Val *f, int line)
-{
-        Biobuf *imp;
-        char *file, *p, *q;
-        int32 c;
-        int len;
-        Strlit *path;
-        char *cleanbuf;
+func importfile(Val *f, int line){
+        Biobuf *imp
+        char *file, *p, *q
+        int32 c
+        int len
+        Strlit *path
+        char *cleanbuf
 
         // TODO(rsc): don't bother reloading imports more than once?
 
-        if(f->ctype != CTSTR) {
-                yyerror("import statement not a string");
-                return;
+        if f->ctype != CTSTR {
+                yyerror("import statement not a string")
+                return
         }
 
-        if(strlen(f->u.sval->s) != f->u.sval->len) {
-                yyerror("import path contains NUL");
-                errorexit();
+        if strlen(f->u.sval->s) != f->u.sval->len {
+                yyerror("import path contains NUL")
+                errorexit()
         }
 
         // The package name main is no longer reserved,
         // but we reserve the import path "main" to identify
         // the main package, just as we reserve the import 
         // path "math" to identify the standard math package.
-        if(strcmp(f->u.sval->s, "main") == 0) {
-                yyerror("cannot import \"main\"");
-                errorexit();
+        if strcmp(f->u.sval->s, "main") == 0 {
+                yyerror("cannot import \"main\"")
+                errorexit()
         }
 
-        if(strcmp(f->u.sval->s, "unsafe") == 0) {
-                if(safemode) {
-                        yyerror("cannot import package unsafe");
-                        errorexit();
+        if strcmp(f->u.sval->s, "unsafe") == 0 {
+                if safemode {
+                        yyerror("cannot import package unsafe")
+                        errorexit()
                 }
-                importpkg = mkpkg(f->u.sval);
-                cannedimports("unsafe.6", unsafeimport);
-                return;
+                importpkg = mkpkg(f->u.sval)
+                cannedimports("unsafe.6", unsafeimport)
+                return
         }
         
-        path = f->u.sval;
-        if(islocalname(path)) {
-                cleanbuf = mal(strlen(pathname) + strlen(path->s) + 2);
-                strcpy(cleanbuf, pathname);
-                strcat(cleanbuf, "/");
-                strcat(cleanbuf, path->s);
-                cleanname(cleanbuf);
-                path = strlit(cleanbuf);
+        path = f->u.sval
+        if islocalname(path) {
+                cleanbuf = mal(strlen(pathname) + strlen(path->s) + 2)
+                strcpy(cleanbuf, pathname)
+                strcat(cleanbuf, "/")
+                strcat(cleanbuf, path->s)
+                cleanname(cleanbuf)
+                path = strlit(cleanbuf)
         }
 
-        if(!findpkg(path)) {
-                yyerror("can't find import: %Z", f->u.sval);
-                errorexit();
+        if!findpkg(path) {
+                yyerror("can't find import: %Z", f->u.sval)
+                errorexit()
         }
-        importpkg = mkpkg(path);
+        importpkg = mkpkg(path)
 
-        imp = Bopen(namebuf, OREAD);
-        if(imp == nil) {
-                yyerror("can't open import: %Z: %r", f->u.sval);
-                errorexit();
+        imp = Bopen(namebuf, OREAD)
+        if imp == nil {
+                yyerror("can't open import: %Z: %r", f->u.sval)
+                errorexit()
         }
-        file = strdup(namebuf);
+        file = strdup(namebuf)
 
-        len = strlen(namebuf);
-        if(len > 2 && namebuf[len-2] == '.' && namebuf[len-1] == 'a') {
-                if(!skiptopkgdef(imp)) {
-                        yyerror("import %s: not a package file", file);
-                        errorexit();
+        len = strlen(namebuf)
+        if len > 2 && namebuf[len-2] == '.' && namebuf[len-1] == 'a' {
+                if !skiptopkgdef(imp) {
+                        yyerror("import %s: not a package file", file)
+                        errorexit()
                 }
         }
         
         // check object header
-        p = Brdstr(imp, '\n', 1);
-        if(strcmp(p, "empty archive") != 0) {
-                if(strncmp(p, "go object ", 10) != 0) {
-                        yyerror("import %s: not a go object file", file);
-                        errorexit();
+        p = Brdstr(imp, '\n', 1)
+        if strcmp(p, "empty archive") != 0 {
+                if strncmp(p, "go object ", 10) != 0 {
+                        yyerror("import %s: not a go object file", file)
+                        errorexit()
                 }
-                q = smprint("%s %s %s", getgoos(), thestring, getgoversion());
-                if(strcmp(p+10, q) != 0) {
-                        yyerror("import %s: object is [%s] expected [%s]", file, p+10, q);
-                        errorexit();
+                q = smprint("%s %s %s", getgoos(), thestring, getgoversion())
+                if strcmp(p+10, q) != 0 {
+                        yyerror("import %s: object is [%s] expected [%s]", file, p+10, q)
+                        errorexit()
                 }
-                free(q);
+                free(q)
         }
 
         // assume files move (get installed)
         // so don't record the full path.
-        linehist(file + len - path->len - 2, -1, 1);    // acts as #pragma lib
+        linehist(file + len - path->len - 2, -1, 1)   // acts as #pragma lib
 
         /*
          * position the input right
          * after $$ and return
          */
-        pushedio = curio;
-        curio.bin = imp;
-        curio.peekc = 0;
-        curio.peekc1 = 0;
-        curio.infile = file;
-        curio.nlsemi = 0;
-        typecheckok = 1;
+        pushedio = curio
+        curio.bin = imp
+        curio.peekc = 0
+        curio.peekc1 = 0
+        curio.infile = file
+        curio.nlsemi = 0
+        typecheckok = 1
 
-        for(;;) {
-                c = getc();
-                if(c == EOF)
-                        break;
-                if(c != '$')
-                        continue;
-                c = getc();
-                if(c == EOF)
-                        break;
-                if(c != '$')
-                        continue;
-                return;
+        for ;; {
+                c = getc()
+                if c == EOF
+                        break
+                if c != '$'
+                        continue
+                c = getc()
+                if c == EOF
+                        break
+                if c != '$'
+                        continue
+                return
         }
-        yyerror("no import in: %Z", f->u.sval);
-        unimportfile();
+        yyerror("no import in: %Z", f->u.sval)
+        unimportfile()
 }
 
-void
-unimportfile(void)
-{
-        if(curio.bin != nil) {
-                Bterm(curio.bin);
-                curio.bin = nil;
+func unimportfile(void){
+        if curio.bin != nil {
+                Bterm(curio.bin)
+                curio.bin = nil
         } else
-                lexlineno--;    // re correct sys.6 line number
+                lexlineno--   // re correct sys.6 line number
 
-        curio = pushedio;
-        pushedio.bin = nil;
-        incannedimport = 0;
-        typecheckok = 0;
+        curio = pushedio
+        pushedio.bin = nil
+        incannedimport = 0
+        typecheckok = 0
 }
 
-void
-cannedimports(char *file, char *cp)
-{
-        lexlineno++;            // if sys.6 is included on line 1,
+func cannedimports(char *file, char *cp) {
+        lexlineno++            // if sys.6 is included on line 1,
 
-        pushedio = curio;
-        curio.bin = nil;
-        curio.peekc = 0;
-        curio.peekc1 = 0;
-        curio.infile = file;
-        curio.cp = cp;
-        curio.nlsemi = 0;
-        curio.importsafe = 0;
+        pushedio = curio
+        curio.bin = nil
+        curio.peekc = 0
+        curio.peekc1 = 0
+        curio.infile = file
+        curio.cp = cp
+        curio.nlsemi = 0
+        curio.importsafe = 0
 
-        typecheckok = 1;
-        incannedimport = 1;
+        typecheckok = 1
+        incannedimport = 1
 }
 
-static int
-isfrog(int c)
-{
+func isfrog(int c)int {
         // complain about possibly invisible control characters
-        if(c < 0)
-                return 1;
-        if(c < ' ') {
-                if(c == '\n' || c== '\r' || c == '\t')  // good white space
-                        return 0;
-                return 1;
+        if c < 0
+                return 1
+        if c < ' ' {
+                if c == '\n' || c== '\r' || c == '\t'  // good white space
+                        return 0
+                return 1
         }
-        if(0x7f <= c && c <= 0xa0)      // DEL, unicode block including unbreakable space.
-                return 1;
-        return 0;
+        if 0x7f <= c && c <= 0xa0      // DEL, unicode block including unbreakable space.
+                return 1
+        return 0
 }
 
-typedef struct Loophack Loophack;
-struct Loophack {
-        int v;
-        Loophack *next;
-};
+typedef struct Loophack Loophack
+type Loophack struct {
+        int v
+        Loophack *next
+}
+func _yylex(void)int {
+         c, c1, clen, escflag, ncp int
+        vlong v
+        char *cp, *ep
+        Rune rune
+        Sym *s
+         Loophack *lstk
+        Loophack *h
 
-static int32
-_yylex(void)
-{
-        int c, c1, clen, escflag, ncp;
-        vlong v;
-        char *cp, *ep;
-        Rune rune;
-        Sym *s;
-        static Loophack *lstk;
-        Loophack *h;
-
-        prevlineno = lineno;
+        prevlineno = lineno
 
 l0:
-        c = getc();
-        if(yy_isspace(c)) {
-                if(c == '\n' && curio.nlsemi) {
-                        ungetc(c);
-                        DBG("lex: implicit semi\n");
-                        return ';';
+        c = getc()
+        if yy_isspace(c) {
+                if c == '\n' && curio.nlsemi {
+                        ungetc(c)
+                        DBG("lex: implicit semi\n")
+                        return ';'
                 }
                 goto l0;
         }
 
-        lineno = lexlineno;     /* start of token */
+        lineno = lexlineno     /* start of token */
 
-        if(c >= Runeself) {
+        ifc >= Runeself {
                 /* all multibyte runes are alpha */
-                cp = lexbuf;
-                ep = lexbuf+sizeof lexbuf;
-                goto talph;
+                cp = lexbuf
+                ep = lexbuf+sizeof lexbuf
+                goto talph
         }
 
-        if(yy_isalpha(c)) {
-                cp = lexbuf;
-                ep = lexbuf+sizeof lexbuf;
-                goto talph;
+        if yy_isalpha(c) {
+                cp = lexbuf
+                ep = lexbuf+sizeof lexbuf
+                goto talph
         }
 
-        if(yy_isdigit(c))
-                goto tnum;
+        if yy_isdigit(c)
+                goto tnum
 
         switch(c) {
         case EOF:
-                lineno = prevlineno;
-                ungetc(EOF);
-                return -1;
+                lineno = prevlineno
+                ungetc(EOF)
+                return -1
 
         case '_':
-                cp = lexbuf;
-                ep = lexbuf+sizeof lexbuf;
-                goto talph;
+                cp = lexbuf
+                ep = lexbuf+sizeof lexbuf
+                goto talph
 
         case '.':
-                c1 = getc();
-                if(yy_isdigit(c1)) {
-                        cp = lexbuf;
-                        ep = lexbuf+sizeof lexbuf;
-                        *cp++ = c;
-                        c = c1;
-                        c1 = 0;
-                        goto casedot;
+                c1 = getc()
+                if yy_isdigit(c1) {
+                        cp = lexbu
+                        ep = lexbuf+sizeof lexbuf    
+                    *cp++ = c
+                        c = c1
+                        c1 = 0
+                        goto casedot
                 }
-                if(c1 == '.') {
-                        c1 = getc();
-                        if(c1 == '.') {
-                                c = LDDD;
-                                goto lx;
-                        }
-                        ungetc(c1);
-                        c1 = '.';
+                ifc1 == '.' {
+                        c1 = getc()
+                        if c1 == '.' {
+                                c = LDDD
+                                goto lx 
+                       }
+                        ungetc(c1)
+                        c1 = '.'
                 }
-                break;
+                break
 
         case '"':
                 /* "..." */
-                strcpy(lexbuf, "\"<string>\"");
-                cp = mal(8);
-                clen = sizeof(int32);
-                ncp = 8;
+                strcpy(lexbuf, "\"<string>\"")
+                cp = mal(8)
+                clen = sizeof(int32)
+               ncp = 8
 
-                for(;;) {
-                        if(clen+UTFmax > ncp) {
-                                cp = remal(cp, ncp, ncp);
-                                ncp += ncp;
+                for ;; {
+                        if clen+UTFmax > ncp {
+                               cp = remal(cp, ncp, ncp)
+                                ncp += ncp
                         }
-                        if(escchar('"', &escflag, &v))
+                        if escchar('"', &escflag, &v)
                                 break;
-                        if(v < Runeself || escflag) {
-                                cp[clen++] = v;
+                        if v < Runeself || escflag {
+                                cp[clen++] = v
                         } else {
-                                rune = v;
-                                c = runelen(rune);
-                                runetochar(cp+clen, &rune);
+                                rune = v
+                                c = runelen(rune)
+                                runetochar(cp+clen, &rune)
                                 clen += c;
                         }
                 }
-                goto strlit;
+                goto strlit
         
         case '`':
                 /* `...` */
-                strcpy(lexbuf, "`<string>`");
-                cp = mal(8);
-                clen = sizeof(int32);
-                ncp = 8;
+                strcpy(lexbuf, "`<string>`")
+                cp = mal(8)
+                clen = sizeof(int32)
+                ncp = 8
 
-                for(;;) {
-                        if(clen+UTFmax > ncp) {
-                                cp = remal(cp, ncp, ncp);
-                                ncp += ncp;
+                for ;; {
+                        if clen+UTFmax > ncp{
+                                cp = remal(cp, ncp, ncp)
+                                ncp += ncp
                         }
-                        c = getr();
-                        if(c == EOF) {
-                                yyerror("eof in string");
-                                break;
+                        c = getr()
+                        ifc == EOF {
+                                yyerror("eof in string")
+                                break
                         }
-                        if(c == '`')
-                                break;
-                        rune = c;
-                        clen += runetochar(cp+clen, &rune);
+                        if c == '`'
+                                break
+                        rune = c
+                        clen += runetochar(cp+clen, &rune)
                 }
 
         strlit:
-                *(int32*)cp = clen-sizeof(int32);       // length
+                *(int32*)cp = clen-sizeof(int32)       // length
                 do {
-                        cp[clen++] = 0;
-                } while(clen & MAXALIGN);
-                yylval.val.u.sval = (Strlit*)cp;
-                yylval.val.ctype = CTSTR;
-                DBG("lex: string literal\n");
-                return LLITERAL;
+                        cp[clen++] = 0
+                } while(clen & MAXALIGN)
+                yylval.val.u.sval = (Strlit*)cp
+                yylval.val.ctype = CTSTR
+                DBG("lex: string literal\n")
+                return LLITERAL
 
         case '\'':
                 /* '.' */
-                if(escchar('\'', &escflag, &v)) {
+                if escchar('\'', &escflag, &v) {
                         yyerror("empty character literal or unescaped ' in character literal");
                         v = '\'';
                 }
